@@ -20,57 +20,57 @@ server.listen(port,() => {
 
 io.on('connection', (socket) => {
     console.log("New User: " + socket.id);
-    let p = new Player(100,80,0,socket.id);
-    socket.emit('firstDrawings',(drawings));
-    socket.emit('drawPlayers',(players))
+    let p = new Player(700,300,0,socket.id);
+    socket.emit('firstDrawings',(layers));
+    socket.emit('drawPlayers',(layers[2]))
 
 
     socket.on('movePlayer',(key) =>{
-        for(let i = 0; i < players.length; i++){
-            if(players[i].id == socket.id){
+        for(let i = 0; i < layers[2].length; i++){
+            if(layers[2][i].id == socket.id){
                 if(key == "w"){
-                    players[i].keys.w = true;
+                    layers[2][i].keys.w = true;
                 } 
                 if(key == "s"){
-                    players[i].keys.s = true;
+                    layers[2][i].keys.s = true;
                 }
                 if(key == "a"){
-                    players[i].keys.a = true;
+                    layers[2][i].keys.a = true;
                 } 
                 if(key == "d"){
-                    players[i].keys.d = true;
+                    layers[2][i].keys.d = true;
                 }
             }
         }
     })
     socket.on('stopPlayer',(key) =>{
-        for(let i = 0; i < players.length; i++){
-            if(players[i].id == socket.id){
+        for(let i = 0; i < layers[2].length; i++){
+            if(layers[2][i].id == socket.id){
                 if(key == "w"){
-                    players[i].keys.w = false;
+                    layers[2][i].keys.w = false;
                 } 
                 if(key == "s"){
-                    players[i].keys.s = false;
+                    layers[2][i].keys.s = false;
                 }
                 if(key == "a"){
-                    players[i].keys.a = false;
+                    layers[2][i].keys.a = false;
                 } 
                 if(key == "d"){
-                    players[i].keys.d = false;
+                    layers[2][i].keys.d = false;
                 }
             }
         }
     })
 
     socket.on('disconnect',(reason) =>{
-        for(let i = 0; i < players.length; i++){
-            if(players[i].id == socket.id){
-                players.splice(i,1);
+        for(let i = 0; i < layers[2].length; i++){
+            if(layers[2][i].id == socket.id){
+                layers[2].splice(i,1);
             }
         }
-        for(let i = 0; i < drawings.length; i++){
-            if((drawings[i].id != null) && (drawings[i].id == socket.id)){
-                drawings.splice(i,1)
+        for(let i = 0; i < layers[0].length; i++){
+            if((layers[0][i].id != null) && (layers[0][i].id == socket.id)){
+                layers[0].splice(i,1)
             }
         }
         console.log("Player Disconnect: " + socket.id + " Reason:" + reason)
@@ -82,7 +82,7 @@ io.on('connection', (socket) => {
             socketGameTick();
         },8)
 
-        socket.emit('drawPlayers',(players))
+        socket.emit('drawPlayers',(layers[2]))
 
     }
     socketGameTick();
@@ -90,8 +90,11 @@ io.on('connection', (socket) => {
 
 
 
-var drawings = [];
-
+var layers = [[],[],[]];
+/*  
+    0 = world elements
+    1 = players
+*/
 
 class Drawing{
     constructor(x,y,w,h,image){
@@ -107,13 +110,22 @@ class Tile extends Drawing{
     constructor(x,y,image){
         super(x,y,50,50,image);
         this.type = "tile";
-        drawings.push(this)
+        layers[0].push(this)
+    }
+}
+class Colidable extends Drawing{
+    constructor(x,y,w,h,image){
+        super(x,y,w,h,image);
+        layers[1].push(this);
     }
 }
 class Player extends Drawing{
     constructor(x,y,image,id){
         super(x,y,30,30,image);
+        this.startX = x;
+        this.startY = y;
         this.id = id;
+        this.moveSpeed = 5;
         this.type = "character";
         this.keys = {
             w:false,
@@ -121,31 +133,61 @@ class Player extends Drawing{
             s:false,
             d:false
         }
-        players.push(this);
+        layers[2].push(this);
     }
 
     move(){
+        let moveX = 0;
+        let moveY = 0;
         if(this.keys.w){
-            this.y -= 10;
+            moveY -= this.moveSpeed;
         }
         if(this.keys.s){
-            this.y += 10;
+            moveY += this.moveSpeed;
         }
         if(this.keys.a){
-            this.x -= 10;
+            moveX -= this.moveSpeed;
         }
         if(this.keys.d){
-            this.x += 10;
+            moveX += this.moveSpeed;
+        }
+
+        this.x += moveX;
+        let returned = false;
+
+        for(let i = 0; i < layers[1].length; i++){
+            if((!returned)&&(isColide(this,layers[1][i]))){
+                this.x -= moveX;
+                returned = true
+            }
+        }
+
+        returned = false;
+        this.y += moveY;
+
+        for(let i = 0; i < layers[1].length; i++){
+            if((!returned)&&(isColide(this,layers[1][i]))){
+                this.y -= moveY;
+                returned = true
+            }
         }
     }
 }
 
-var players = []
 
-for(let y = 0; y < 10; y++){
-    for(let x = 0; x < 10; x++){
+for(let y = 0; y < 20; y++){
+    for(let x = 0; x < 30; x++){
     let block = new Tile(50 * x,50 * y,0);
     }
+}
+
+for(let x = 0; x < 30; x++){
+    let block = new Colidable(50 * x,50 * 20,50,50,0);
+    block = new Colidable(50 * x,-50,50,50,0);
+}
+for(let y = 0; y < 20; y++){
+    let block = new Colidable(-50,50 * y,50,50,0);
+    block = new Colidable(50 * 30,50 * y,50,50,0);
 }
 
 function gameTick(){
@@ -153,10 +195,17 @@ function gameTick(){
         gameTick();
     },8)
 
-    for(let i = 0; i < players.length; i++){
-        players[i].move();
+    for(let i = 0; i < layers[2].length; i++){
+        layers[2][i].move();
     }
 
+}
+function isColide(a,b){
+    if((a.x < b.x + b.width) && (b.x < a.x + a.width) && (a.y < b.y + b.height) && (b.y < a.y + a.height)){
+        return(true);
+        
+    }
+    return(false);
 }
 gameTick();
 
