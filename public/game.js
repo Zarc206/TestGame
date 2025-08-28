@@ -9,22 +9,26 @@ canvas.height = screen.height
 const socket = io();
 
 var drawings = []
-var players = []
 var camera = {
     x:0,
     y:0
 }
 
 socket.on('firstDrawings',(serverDrawings) =>{
-    drawings = serverDrawings[0];
-    players = serverDrawings[2]
+    drawings = [];
+    drawings.push(serverDrawings[0]);
+    drawings.push(serverDrawings[1]);
+    drawings.push(serverDrawings[2]);
+    drawings.push(serverDrawings[3]);
 })
 socket.on('drawPlayers',(serverPlayers) =>{
-    players = serverPlayers;
-    for(let i = 0; i < players.length; i++){
-        if(players[i].id == socket.id){
-            camera.x = players[i].x - players[i].startX;
-            camera.y = players[i].y - players[i].startY;
+    console.log(serverPlayers)
+    drawings[2] = serverPlayers[0];
+    drawings[3] = serverPlayers[1];
+    for(let i = 0; i < serverPlayers[1].length; i++){
+        if(serverPlayers[1][i].id == socket.id){
+            camera.x = serverPlayers[1][i].x - serverPlayers[1][i].startX;
+            camera.y = serverPlayers[1][i].y - serverPlayers[1][i].startY;
         }
     }
 })
@@ -33,26 +37,24 @@ function animate(){
     window.requestAnimationFrame(animate);
     ctx.fillStyle = "white"
     ctx.fillRect(0,0,canvas.width, canvas.height)
-    for(let i = 0; i < drawings.length; i++){
-        let img;
-        if(drawings[i].type == "tile"){
-            img = tiles[drawings[i].imageNum];
+    for(let layer = 0; layer < drawings.length; layer++){
+        for(let i = 0; i < drawings[layer].length; i++){
+            let img;
+            if(drawings[layer][i].type == "tile"){
+                img = tiles[drawings[layer][i].imageNum];
+            }
+            if(drawings[layer][i].type == "character"){
+                img = characters[drawings[layer][i].imageNum];
+            }
+            if(drawings[layer][i].type == "colidable"){
+                img = colidables[drawings[layer][i].imageNum];
+            }
+            if(img != null){
+                ctx.drawImage(img,drawings[layer][i].x - camera.x,drawings[layer][i].y-camera.y,drawings[layer][i].width,drawings[layer][i].height);
+            }
         }
-        if(drawings[i].type == "character"){
-            img = characters[drawings[i].imageNum];
-        }
-        ctx.drawImage(img,drawings[i].x - camera.x,drawings[i].y-camera.y,drawings[i].width,drawings[i].height);
     }
-    for(let i = 0; i < players.length; i++){
-        let img;
-        if(players[i].type == "tile"){
-            img = tiles[players[i].imageNum];
-        }
-        if(players[i].type == "character"){
-            img = characters[players[i].imageNum];
-        }
-        ctx.drawImage(img,players[i].x - camera.x,players[i].y - camera.y,players[i].width,players[i].height);
-    }
+    
 }
 function playerInputs(e){
     socket.emit('movePlayer',(e.key));
