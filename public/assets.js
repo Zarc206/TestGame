@@ -2,7 +2,10 @@ var grassTile = new Image();
 grassTile.src = "assets/tiles/grassTile.png"
 
 var playerImg = new Image();
-playerImg.src = "assets/ball.png"
+playerImg.src = "assets/characters/ball.png"
+
+var piramidImg = new Image();
+piramidImg.src = "assets/characters/piramid.png"
 
 var ledgeImg = new Image();
 ledgeImg.src = "assets/worldObjects/ledge.png"
@@ -25,6 +28,13 @@ rightUpFence.src = "assets/worldObjects/fenceRightUp.png"
 var rightDownFence = new Image();
 rightDownFence.src = "assets/worldObjects/fenceRightDown.png"
 
+var houseImg = new Image();
+houseImg.src = "assets/worldObjects/house.png"
+
 var tiles = [grassTile];
-var characters = [playerImg];
+var characters = [playerImg,piramidImg];
+var nonColidables = [houseImg];
 var colidables = [ledgeImg,midFence,vertFence,leftDownFence,leftUpFence,rightUpFence,rightDownFence];
+
+var speechBubble = new Image();
+speechBubble.src = "assets/speechBubble.png";

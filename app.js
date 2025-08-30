@@ -23,59 +23,68 @@ io.on('connection', (socket) => {
     console.log("New User: " + socket.id);
     let p = new Player(700,300,0,socket.id);
     p.y = 900;
-    socket.emit('firstDrawings',(layers));
-    socket.emit('drawPlayers',(layers[3]))
+    
+    socket.emit('firstDrawings',(locations[0]));
+    socket.emit('drawPlayers',(locations[0][4]));
+    socket.emit('textBox',("Helloooooooooooooooooooooooooooooooooooooooo"));
+    socket.emit('textBox',("Hellooooooooooooooooooooooooooooooo2oooooooo"));
 
 
     socket.on('movePlayer',(key) =>{
-        for(let i = 0; i < layers[3].length; i++){
-            if(layers[3][i].id == socket.id){
-                if(key == "w"){
-                    layers[3][i].keys.w = true;
-                } 
-                if(key == "s"){
-                    layers[3][i].keys.s = true;
-                }
-                if(key == "a"){
-                    layers[3][i].keys.a = true;
-                } 
-                if(key == "d"){
-                    layers[3][i].keys.d = true;
+        for(let ii = 0; ii < locations.length; ii++){
+            for(let i = 0; i < locations[ii][4].length; i++){
+                if(locations[ii][4][i].id == socket.id){
+                    if(key == "w"){
+                        locations[ii][4][i].keys.w = true;
+                    } 
+                    if(key == "s"){
+                        locations[ii][4][i].keys.s = true;
+                    }
+                    if(key == "a"){
+                        locations[ii][4][i].keys.a = true;
+                    } 
+                    if(key == "d"){
+                        locations[ii][4][i].keys.d = true;
+                    }
                 }
             }
         }
     })
     socket.on('stopPlayer',(key) =>{
-        for(let i = 0; i < layers[3].length; i++){
-            if(layers[3][i].id == socket.id){
-                if(key == "w"){
-                    layers[3][i].keys.w = false;
-                } 
-                if(key == "s"){
-                    layers[3][i].keys.s = false;
-                }
-                if(key == "a"){
-                    layers[3][i].keys.a = false;
-                } 
-                if(key == "d"){
-                    layers[3][i].keys.d = false;
+        for(let ii = 0; ii < locations.length; ii++){
+            for(let i = 0; i < locations[ii][4].length; i++){
+                if(locations[ii][4][i].id == socket.id){
+                    if(key == "w"){
+                        locations[ii][4][i].keys.w = false;
+                    } 
+                    if(key == "s"){
+                        locations[ii][4][i].keys.s = false;
+                    }
+                    if(key == "a"){
+                        locations[ii][4][i].keys.a = false;
+                    } 
+                    if(key == "d"){
+                        locations[ii][4][i].keys.d = false;
+                    }
                 }
             }
         }
     })
 
     socket.on('disconnect',(reason) =>{
-        for(let i = 0; i < layers[3].length; i++){
-            if(layers[3][i].id == socket.id){
-                layers[3].splice(i,1);
+        for(let ii = 0; ii < locations.length; ii++){
+            for(let i = 0; i < locations[ii][4].length; i++){
+                if(locations[ii][4][i].id == socket.id){
+                    locations[ii][4].splice(i,1);
+                }
             }
-        }
-        for(let i = 0; i < layers[0].length; i++){
-            if((layers[0][i].id != null) && (layers[0][i].id == socket.id)){
-                layers[0].splice(i,1)
+            for(let i = 0; i < locations[ii][0].length; i++){
+                if((locations[ii][0][i].id != null) && (locations[ii][0][i].id == socket.id)){
+                    locations[ii][0].splice(i,1)
+                }
             }
+            console.log("Player Disconnect: " + socket.id + " Reason:" + reason)
         }
-        console.log("Player Disconnect: " + socket.id + " Reason:" + reason)
     })
 
 
@@ -84,20 +93,34 @@ io.on('connection', (socket) => {
             socketGameTick();
         },8)
 
-        socket.emit('drawPlayers',([layers[2],layers[3]]))
+        for(let i = 0; i < locations.length; i++){
+            for(let ii = 0; ii < locations[i][4].length; ii++){
+                if(locations[i][4][ii].id == socket.id){
+                    socket.emit('drawPlayers',([locations[locations[i][4][ii].location][3],locations[locations[i][4][ii].location][4]]))
+                    if(locations[i][4][ii].location != locations[i][4][ii].moveLocation){
+                        locations[i][4][ii].location = locations[i][4][ii].moveLocation;
+                        locations[locations[i][4][ii].location][4].push(locations[i][4][ii]);
+                        socket.emit('firstDrawings',(locations[locations[i][4][ii].location]));
+                        locations[i][4].splice(ii,1);
+                    }
+                }
+
+            }
+        }
 
     }
     socketGameTick();
 })
 
-
+var locations = [[[],[],[],[],[]],[[],[],[],[],[]]];
 
 var layers = [[],[],[],[]];
 /*  
     0 = world elements
     1 = colidables
-    2 = creatures
-    3 = players
+    2 = nonColidables
+    3 = creatures
+    4 = players
 */
 
 class Drawing{
@@ -111,17 +134,27 @@ class Drawing{
     }
 }
 class Tile extends Drawing{
-    constructor(x,y,image){
+    constructor(x,y,image,location){
         super(x,y,50,50,image);
+        this.location = location;
         this.type = "tile";
-        layers[0].push(this)
+        locations[this.location][0].push(this)
     }
 }
 class Colidable extends Drawing{
-    constructor(x,y,w,h,image){
+    constructor(x,y,w,h,image,location){
         super(x,y,w,h,image);
-        layers[1].push(this);
+        this.location = location;
+        locations[this.location][1].push(this);
         this.type = "colidable";
+    }
+}
+class nonColidable extends Drawing{
+    constructor(x,y,w,h,image,location){
+        super(x,y,w,h,image);
+        this.location = location;
+        locations[this.location][2].push(this);
+        this.type = "nonColidable";
     }
 }
 class Player extends Drawing{
@@ -138,7 +171,9 @@ class Player extends Drawing{
             s:false,
             d:false
         }
-        layers[3].push(this);
+        this.location = 0;
+        this.moveLocation = 0;
+        locations[this.location][4].push(this);
     }
 
     move(){
@@ -160,18 +195,24 @@ class Player extends Drawing{
         this.x += moveX;
         let returned = false;
 
-        for(let i = 0; i < layers[1].length; i++){
-            if((!returned)&&(isColide(this,layers[1][i]))){
+        for(let i = 0; i < locations[this.location][1].length; i++){
+            if((!returned)&&(isColide(this,locations[this.location][1][i]))){
                 this.x -= moveX;
                 returned = true
             }
         }
+        for(let i = 0; i < locations[this.location][0].length; i++){
+            if((locations[this.location][0][i].type == "teleporter") && (isColide(locations[this.location][0][i],this))){
+                this.moveLocation = locations[this.location][0][i].location2;
+            }
+        }
+
 
         returned = false;
         this.y += moveY;
 
-        for(let i = 0; i < layers[1].length; i++){
-            if((!returned)&&(isColide(this,layers[1][i]))){
+        for(let i = 0; i < locations[this.location][1].length; i++){
+            if((!returned)&&(isColide(this,locations[this.location][1][i]))){
                 this.y -= moveY;
                 returned = true
             }
@@ -179,10 +220,11 @@ class Player extends Drawing{
     }
 }
 class Creature extends Drawing{
-    constructor(x,y,image){
+    constructor(x,y,image,location){
         super(x,y,30,30,image);
         this.type = "character"
-        layers[2].push(this)
+        this.location = location
+        locations[this.location][3].push(this)
         
         this.behevior = null
     }   
@@ -207,7 +249,7 @@ class Creature extends Drawing{
             let moveX = 0;
             let moveY = 0;
             if(this.behevior == "right"){
-                moveX -= 1
+                moveX -= 1 * Math.random()
             }
             if(this.behevior == "left"){
                 moveX += 1
@@ -222,8 +264,8 @@ class Creature extends Drawing{
 
             this.x += moveX
 
-            for(let i = 0; i < layers[1].length; i++){
-                if((!returned)&&(isColide(this,layers[1][i]))){
+            for(let i = 0; i < locations[this.location][1].length; i++){
+                if((!returned)&&(isColide(this,locations[this.location][1][i]))){
                     this.x -= moveX;
                     returned = true
                 }
@@ -232,8 +274,8 @@ class Creature extends Drawing{
             returned = false;
             this.y += moveY;
 
-            for(let i = 0; i < layers[1].length; i++){
-                if((!returned)&&(isColide(this,layers[1][i]))){
+            for(let i = 0; i < locations[this.location][1].length; i++){
+                if((!returned)&&(isColide(this,locations[this.location][1][i]))){
                     this.y -= moveY;
                     returned = true
                 }
@@ -245,56 +287,92 @@ class Creature extends Drawing{
         }
     }
 }
+class Teleporter extends Tile{
+    constructor(x,y,location,location2){
+        super(x,y,-1,location);
+        this.location2 = location2;
+        this.type = "teleporter";   
+    }
+    
+}
 
 
 for(let y = 0; y < 20; y++){
     for(let x = 0; x < 30; x++){
-    let block = new Tile(50 * x,50 * y,0);
+    let block = new Tile(50 * x,50 * y,0,0);
     }
 }
 for(let x = 0; x < 30; x++){
-    let block = new Colidable(50 * x,50 * 20,50,50,-1);
-    block = new Colidable(50 * x,-50,50,50,-1);
+    let block = new Colidable(50 * x,50 * 20,50,50,-1,0);
+    block = new Colidable(50 * x,-50,50,50,-1,0);
 
         if((x > 16) || (x < 12)){    
-            block = new Colidable(50 * x,50 * 15,50,50,0);
+            block = new Colidable(50 * x,50 * 15,50,50,0,0);
         }
 
 }
 for(let y = 0; y < 20; y++){
-    let block = new Colidable(-50,50 * y,50,50,-1);
-    block = new Colidable(50 * 30,50 * y,50,50,-1);
+    let block = new Colidable(-50,50 * y,50,50,-1,0);
+    block = new Colidable(50 * 30,50 * y,50,50,-1,0);
 }
 
 for(let x = 0; x < 7; x++){
-    block = new Colidable(150 + 50 * x,200,50,50,1);
-    block = new Colidable(150 + 50 * x,500,50,50,1);
+    block = new Colidable(150 + 50 * x,200,50,50,1,0);
+    block = new Colidable(150 + 50 * x,500,50,50,1,0);
 }
 
 for(let y = 0; y < 5; y++){
-    block = new Colidable(100 ,250 + 50 * y,50,50,2);
-    block = new Colidable(500,250 + 50 * y,50,50,2);
+    block = new Colidable(100 ,250 + 50 * y,50,50,2,0);
+    block = new Colidable(500,250 + 50 * y,50,50,2,0);
 }
-    block = new Colidable(500 ,200,50,50,3);
-    block = new Colidable(500 ,500,50,50,4);
-    block = new Colidable(100 ,500,50,50,5);
-    block = new Colidable(100 ,200,50,50,6);
+    block = new Colidable(500 ,200,50,50,3,0);
+    block = new Colidable(500 ,500,50,50,4,0);
+    block = new Colidable(100 ,500,50,50,5,0);
+    block = new Colidable(100 ,200,50,50,6,0);
 
+    house = new nonColidable(1000,200,350,250,0,0);
+    b = new Colidable(1000,200,50,50,-1,0);
+    b = new Colidable(1000,250,50,50,-1,0);
+    b = new Colidable(1000,300,50,50,-1,0);
+    b = new Colidable(1000,350,50,50,-1,0);
+    b = new Colidable(1000,400,50,50,-1,0);
 
+    b = new Colidable(1000,200,50,50,-1,0);
+    b = new Colidable(1050,200,50,50,-1,0);
+    b = new Colidable(1100,200,50,50,-1,0);
+    b = new Colidable(1150,200,50,50,-1,0);
+    b = new Colidable(1200,200,50,50,-1,0);
+    b = new Colidable(1250,200,50,50,-1,0);
+    b = new Colidable(1300,200,50,50,-1,0);
 
+    b = new Colidable(1300,250,50,50,-1,0);
+    b = new Colidable(1300,300,50,50,-1,0);
+    b = new Colidable(1300,350,50,50,-1,0);
+    b = new Colidable(1300,400,50,50,-1,0);
 
+    b = new Colidable(1200,400,50,50,-1,0);
+    b = new Colidable(1250,400,50,50,-1,0);
 
-let ball = new Creature(400,300,0);
+    b = new Colidable(1050,400,50,50,-1,0);
+    b = new Colidable(1100,400,50,50,-1,0);
+    b = new Teleporter(1150,400,0,1);
+
+    b = new Colidable(1150,350,50,50,-1,0);
+
+let ball = new Creature(400,300,1,0);
 function gameTick(){
     setTimeout(function(){
         gameTick();
     },8)
-
-    for(let i = 0; i < layers[3].length; i++){
-        layers[3][i].move();
-    }
-    for(let i = 0; i < layers[2].length; i++){
-        layers[2][i].move();
+    for(let ii = 0; ii < locations.length; ii++){
+        if(locations[ii][4].length != 0){
+            for(let i = 0; i < locations[ii][4].length; i++){
+                locations[ii][4][i].move();
+            }
+            for(let i = 0; i < locations[ii][3].length; i++){
+                locations[ii][3][i].move();
+            }
+        }
     }
 
 }
