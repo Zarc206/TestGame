@@ -46,6 +46,29 @@ io.on('connection', (socket) => {
                     if(key == "d"){
                         locations[ii][4][i].keys.d = true;
                     }
+                    if(key == "o"){
+                        let xOff = 0;
+                        let yOff = 0;
+                        let player = locations[ii][4][i]
+                        if(player.direction == "w"){
+                            yOff = -30;
+                        }
+                        if(player.direction == "s"){
+                            yOff = 30;
+                        }
+                        if(player.direction == "a"){
+                            xOff = -30;
+                        }
+                        if(player.direction == "d"){
+                            xOff = 30;
+                        }
+                        let b = new Hitbox(player.x + xOff,player.y + yOff,player.width,player.height,player.location);
+                        for(let i = 0; i < locations[player.location][3].length; i++){
+                            if((locations[player.location][3][i].interact != null)&&(isColide(b,locations[player.location][3][i]))){
+                                locations[player.location][3][i].interact(socket.id); 
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -96,6 +119,10 @@ io.on('connection', (socket) => {
         for(let i = 0; i < locations.length; i++){
             for(let ii = 0; ii < locations[i][4].length; ii++){
                 if(locations[i][4][ii].id == socket.id){
+                    while(locations[i][4][ii].messages.length > 0){
+                        socket.emit("textBox",locations[i][4][ii].messages[0]);
+                        locations[i][4][ii].messages.splice(0,1);
+                    }
                     socket.emit('drawPlayers',([locations[locations[i][4][ii].location][3],locations[locations[i][4][ii].location][4]]))
                     if(locations[i][4][ii].location != locations[i][4][ii].moveLocation){
                         locations[i][4][ii].location = locations[i][4][ii].moveLocation;
@@ -173,6 +200,8 @@ class Player extends Drawing{
         }
         this.location = 0;
         this.moveLocation = 0;
+        this.direction = "s";
+        this.messages = [];
         locations[this.location][4].push(this);
     }
 
@@ -181,15 +210,19 @@ class Player extends Drawing{
         let moveY = 0;
         if(this.keys.w){
             moveY -= this.moveSpeed;
+            this.direction = "w"
         }
         if(this.keys.s){
             moveY += this.moveSpeed;
+            this.direction = "s"
         }
         if(this.keys.a){
             moveX -= this.moveSpeed;
+            this.direction = "a"
         }
         if(this.keys.d){
             moveX += this.moveSpeed;
+            this.direction = "d"
         }
 
         this.x += moveX;
@@ -201,12 +234,12 @@ class Player extends Drawing{
                 returned = true
             }
         }
-        for(let i = 0; i < locations[this.location][0].length; i++){
-            if((locations[this.location][0][i].type == "teleporter") && (isColide(locations[this.location][0][i],this))){
-                this.moveLocation = locations[this.location][0][i].location2;
+        for(let i = 0; i < locations[this.location][3].length; i++){
+            if((!returned)&&(isColide(this,locations[this.location][3][i]))){
+                this.x -= moveX;
+                returned = true
             }
         }
-
 
         returned = false;
         this.y += moveY;
@@ -215,6 +248,18 @@ class Player extends Drawing{
             if((!returned)&&(isColide(this,locations[this.location][1][i]))){
                 this.y -= moveY;
                 returned = true
+            }
+        }
+        for(let i = 0; i < locations[this.location][3].length; i++){
+            if((!returned)&&(isColide(this,locations[this.location][3][i]))){
+                this.y -= moveY;
+                returned = true
+            }
+        }
+
+        for(let i = 0; i < locations[this.location][0].length; i++){
+            if((locations[this.location][0][i].type == "teleporter") && (isColide(locations[this.location][0][i],this))){
+                this.moveLocation = locations[this.location][0][i].location2;
             }
         }
     }
@@ -226,63 +271,65 @@ class Creature extends Drawing{
         this.location = location
         locations[this.location][3].push(this)
         
-        this.behevior = null
+        this.behevior = "random"
     }   
     move(){
-        if(this.behevior == null){
-            if(Math.random() > 0.99){
-                let direction = Math.floor(Math.random() * 4)
-                if(direction == 1){
-                    this.behevior = "right"
-                } 
-                if(direction == 0){
-                    this.behevior = "left"
+        if(this.behevior != null){
+            if(this.behevior == "random"){
+                if(Math.random() > 0.99){
+                    let direction = Math.floor(Math.random() * 4)
+                    if(direction == 1){
+                        this.behevior = "right"
+                    } 
+                    if(direction == 0){
+                        this.behevior = "left"
+                    }
+                    if(direction == 2){
+                        this.behevior = "up"
+                    } 
+                    if(direction == 3){
+                        this.behevior = "down"
+                    }
                 }
-                if(direction == 2){
-                    this.behevior = "up"
-                } 
-                if(direction == 3){
-                    this.behevior = "down"
+            } else {
+                let moveX = 0;
+                let moveY = 0;
+                if(this.behevior == "right"){
+                    moveX -= 1 * Math.random()
                 }
-            }
-        } else {
-            let moveX = 0;
-            let moveY = 0;
-            if(this.behevior == "right"){
-                moveX -= 1 * Math.random()
-            }
-            if(this.behevior == "left"){
-                moveX += 1
-            }
-            if(this.behevior == "up"){
-                moveY -= 1
-            }
-            if(this.behevior == "down"){
-                moveY += 1
-            }
-            let returned = false
-
-            this.x += moveX
-
-            for(let i = 0; i < locations[this.location][1].length; i++){
-                if((!returned)&&(isColide(this,locations[this.location][1][i]))){
-                    this.x -= moveX;
-                    returned = true
+                if(this.behevior == "left"){
+                    moveX += 1
                 }
-            }
-
-            returned = false;
-            this.y += moveY;
-
-            for(let i = 0; i < locations[this.location][1].length; i++){
-                if((!returned)&&(isColide(this,locations[this.location][1][i]))){
-                    this.y -= moveY;
-                    returned = true
+                if(this.behevior == "up"){
+                    moveY -= 1
                 }
-            }
+                if(this.behevior == "down"){
+                    moveY += 1
+                }
+                let returned = false
 
-            if(Math.random() > 0.99){
-                this.behevior = null;
+                this.x += moveX
+
+                for(let i = 0; i < locations[this.location][1].length; i++){
+                    if((!returned)&&(isColide(this,locations[this.location][1][i]))){
+                        this.x -= moveX;
+                        returned = true
+                    }
+                }
+
+                returned = false;
+                this.y += moveY;
+
+                for(let i = 0; i < locations[this.location][1].length; i++){
+                    if((!returned)&&(isColide(this,locations[this.location][1][i]))){
+                        this.y -= moveY;
+                        returned = true
+                    }
+                }
+
+                if(Math.random() > 0.99){
+                    this.behevior = "random";
+                }
             }
         }
     }
@@ -295,36 +342,48 @@ class Teleporter extends Tile{
     }
     
 }
-
-
-for(let y = 0; y < 20; y++){
-    for(let x = 0; x < 30; x++){
-    let block = new Tile(50 * x,50 * y,0,0);
+class Hitbox{
+    constructor(x,y,w,h,location){
+        this.x = x;
+        this.y = y;
+        this.width = w;
+        this.height = h;
+        this.location = location;
     }
 }
-for(let x = 0; x < 30; x++){
-    let block = new Colidable(50 * x,50 * 20,50,50,-1,0);
-    block = new Colidable(50 * x,-50,50,50,-1,0);
+
+let b;
+
+function generateArea0(){
+    for(let y = 0; y < 20; y++){
+        for(let x = 0; x < 30; x++){
+            let block = new Tile(50 * x,50 * y,0,0);
+        }
+    }
+    for(let x = 0; x < 30; x++){
+        let block = new Colidable(50 * x,50 * 20,50,50,-1,0);
+        block = new Colidable(50 * x,-50,50,50,-1,0);
 
         if((x > 16) || (x < 12)){    
             block = new Colidable(50 * x,50 * 15,50,50,0,0);
         }
 
-}
-for(let y = 0; y < 20; y++){
-    let block = new Colidable(-50,50 * y,50,50,-1,0);
-    block = new Colidable(50 * 30,50 * y,50,50,-1,0);
-}
+    }
+    for(let y = 0; y < 20; y++){
+        let block = new Colidable(-50,50 * y,50,50,-1,0);
+        block = new Colidable(50 * 30,50 * y,50,50,-1,0);
+    }
 
-for(let x = 0; x < 7; x++){
-    block = new Colidable(150 + 50 * x,200,50,50,1,0);
-    block = new Colidable(150 + 50 * x,500,50,50,1,0);
-}
+    for(let x = 0; x < 7; x++){
+        block = new Colidable(150 + 50 * x,200,50,50,1,0);
+        block = new Colidable(150 + 50 * x,500,50,50,1,0);
+    }
 
-for(let y = 0; y < 5; y++){
-    block = new Colidable(100 ,250 + 50 * y,50,50,2,0);
-    block = new Colidable(500,250 + 50 * y,50,50,2,0);
-}
+    for(let y = 0; y < 5; y++){
+        block = new Colidable(100 ,250 + 50 * y,50,50,2,0);
+        block = new Colidable(500,250 + 50 * y,50,50,2,0);
+    }
+
     block = new Colidable(500 ,200,50,50,3,0);
     block = new Colidable(500 ,500,50,50,4,0);
     block = new Colidable(100 ,500,50,50,5,0);
@@ -359,7 +418,49 @@ for(let y = 0; y < 5; y++){
 
     b = new Colidable(1150,350,50,50,-1,0);
 
-let ball = new Creature(400,300,1,0);
+    b = new Creature(400,300,1,0);
+   
+}
+function generateArea1(){
+    b = new Tile(1150,450,1,1);
+    b = new Teleporter(1150,450,1,0);
+        
+
+    for(let x = 0; x < 13; x++){
+        for(let y = 0; y < 13; y++){
+            b = new Tile(850 + 50 * x,-200 + 50 * y,1,1);
+
+            if(y == 0){
+                b = new Colidable(850+50*x,-250+50*y,50,50,-1,1);
+            }
+            if(x == 0){
+                b = new Colidable(800+50*x,-200+50*y,50,50,-1,1);
+            }
+            if(x == 12){
+                b = new Colidable(900+50*x,-200+50*y,50,50,-1,1);
+            }
+            if((y == 12) && (x != 6)){
+                b = new Colidable(850+50*x,-150+50*y,50,50,-1,1);
+            }
+
+        }
+    }
+    b = new Colidable(1150,500,50,50,-1,1);
+
+    ball = new Creature(1050,-100,2,1);
+    ball.behevior = null;
+    ball.interact = function(id){
+        for(let i = 0; i < locations.length; i++){
+            for(let ii = 0; ii < locations[i][4].length; ii++){
+                if(locations[i][4][ii].id == id){
+                    locations[i][4][ii].messages.push("Hello!");
+                }
+            }
+        }
+    }
+
+
+}
 function gameTick(){
     setTimeout(function(){
         gameTick();
@@ -383,5 +484,6 @@ function isColide(a,b){
     }
     return(false);
 }
+generateArea0();
+generateArea1();
 gameTick();
-

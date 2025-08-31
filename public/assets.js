@@ -1,8 +1,14 @@
 var grassTile = new Image();
 grassTile.src = "assets/tiles/grassTile.png"
 
+var woodFloorTile = new Image();
+woodFloorTile.src = "assets/tiles/woodFloorTile.png"
+
 var playerImg = new Image();
 playerImg.src = "assets/characters/ball.png"
+
+var ball2Img = new Image();
+ball2Img.src = "assets/characters/ball2.png"
 
 var piramidImg = new Image();
 piramidImg.src = "assets/characters/piramid.png"
@@ -31,8 +37,8 @@ rightDownFence.src = "assets/worldObjects/fenceRightDown.png"
 var houseImg = new Image();
 houseImg.src = "assets/worldObjects/house.png"
 
-var tiles = [grassTile];
-var characters = [playerImg,piramidImg];
+var tiles = [grassTile,woodFloorTile];
+var characters = [playerImg,piramidImg,ball2Img];
 var nonColidables = [houseImg];
 var colidables = [ledgeImg,midFence,vertFence,leftDownFence,leftUpFence,rightUpFence,rightDownFence];
 

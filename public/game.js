@@ -34,18 +34,15 @@ socket.on('drawPlayers',(serverPlayers) =>{
     }
 })
 socket.on('textBox',(message) =>{
-
     socket.emit('stopPlayer',("w"));
     socket.emit('stopPlayer',("a"));
     socket.emit('stopPlayer',("s"));
     socket.emit('stopPlayer',("d"));
 
     standbyTexts.push(message);
-
 })
 
 function animate(){
-
     if((standbyTexts[0] != null) && (standbyTexts[0] != "")){
         if(displayText == null){
             displayText = ""
@@ -90,12 +87,8 @@ function playerInputs(e){
         socket.emit('movePlayer',(e.key));
     } else if (e.key == "o"){
         if((standbyTexts[0] == null) || (standbyTexts[0] == "")){
-            if(standbyTexts.length == 1){
-                displayText = null;
-            } else {
-                displayText = null;
-                standbyTexts.splice(0,1);
-            }
+            displayText = null;
+            standbyTexts.splice(0,1);
         } else {
             displayText += standbyTexts[0];
             standbyTexts[0] = null;
