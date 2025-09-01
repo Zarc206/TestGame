@@ -9,7 +9,7 @@ canvas.height = screen.height
 const socket = io();
 
 var drawings = []
-var displayText = "";
+var displayText = null;
 var standbyTexts = [];
 var camera = {
     x:0,
@@ -72,12 +72,25 @@ function animate(){
             if(img != null){
                 ctx.drawImage(img,drawings[layer][i].x - camera.x,drawings[layer][i].y-camera.y,drawings[layer][i].width,drawings[layer][i].height);
             }
+            if((layer == 4) && (drawings[4][i].id != null) && (drawings[4][i].id == socket.id)){
+                if(drawings[4][i].aiming){
+                    ctx.translate(drawings[4][i].x - camera.x + 15,drawings[4][i].y - camera.y + 15)
+                    ctx.rotate(drawings[4][i].aimDirection);
+                    ctx.drawImage(pointerImg,0,-7);
+                    ctx.rotate(-drawings[4][i].aimDirection);
+                    ctx.translate(-(drawings[4][i].x - camera.x + 15),-(drawings[4][i].y - camera.y + 15))
+                }
+
+                for(let ii = 0; ii < drawings[4][i].projectileCapsules.length; ii++){
+                    ctx.drawImage(capsuleImg,drawings[4][i].projectileCapsules[ii].x - camera.x,drawings[4][i].projectileCapsules[ii].y - camera.y);
+                }
+            }
         }
     }
     if(displayText != null){
         ctx.drawImage(speechBubble,0,0,screen.width,screen.width/140 * 20)
         ctx.fillStyle = "black"
-        ctx.font = ("15px Arial")
+        ctx.font = ("30px Arial")
         ctx.fillText(displayText,100,100)
     }
     
@@ -85,7 +98,7 @@ function animate(){
 function playerInputs(e){
     if(displayText == null){
         socket.emit('movePlayer',(e.key));
-    } else if (e.key == "o"){
+    } else if ((e.key == "o") || (e.key == "p")){
         if((standbyTexts[0] == null) || (standbyTexts[0] == "")){
             displayText = null;
             standbyTexts.splice(0,1);

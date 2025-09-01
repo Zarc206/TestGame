@@ -26,47 +26,55 @@ io.on('connection', (socket) => {
     
     socket.emit('firstDrawings',(locations[0]));
     socket.emit('drawPlayers',(locations[0][4]));
-    socket.emit('textBox',("Helloooooooooooooooooooooooooooooooooooooooo"));
-    socket.emit('textBox',("Hellooooooooooooooooooooooooooooooo2oooooooo"));
-
 
     socket.on('movePlayer',(key) =>{
         for(let ii = 0; ii < locations.length; ii++){
             for(let i = 0; i < locations[ii][4].length; i++){
                 if(locations[ii][4][i].id == socket.id){
-                    if(key == "w"){
+                    if((key == "w")||(key == "W")){
                         locations[ii][4][i].keys.w = true;
                     } 
-                    if(key == "s"){
+                    if((key == "s")||(key == "S")){
                         locations[ii][4][i].keys.s = true;
                     }
-                    if(key == "a"){
+                    if((key == "a")||(key == "A")){
                         locations[ii][4][i].keys.a = true;
                     } 
-                    if(key == "d"){
+                    if((key == "d")||(key == "D")){
                         locations[ii][4][i].keys.d = true;
                     }
-                    if(key == "o"){
+                    if((key == "p")||(key == "P")){
+                        locations[ii][4][i].keys.p = true;
+                    }
+                    if(key == "Shift"){
+                        locations[ii][4][i].keys.shift = true;
+                    }
+                    if((key == "o")||(key == "O")){
+                        
                         let xOff = 0;
                         let yOff = 0;
                         let player = locations[ii][4][i]
-                        if(player.direction == "w"){
-                            yOff = -30;
-                        }
-                        if(player.direction == "s"){
-                            yOff = 30;
-                        }
-                        if(player.direction == "a"){
-                            xOff = -30;
-                        }
-                        if(player.direction == "d"){
-                            xOff = 30;
-                        }
-                        let b = new Hitbox(player.x + xOff,player.y + yOff,player.width,player.height,player.location);
-                        for(let i = 0; i < locations[player.location][3].length; i++){
-                            if((locations[player.location][3][i].interact != null)&&(isColide(b,locations[player.location][3][i]))){
-                                locations[player.location][3][i].interact(socket.id); 
+                        if(player.aiming){
+                            player.projectileCapsules.push(new ProjectileCapsule(player.x + 10,player.y + 10,player.aimDirection,player.location))
+                        } else {
+                            if(player.direction == "w"){
+                                yOff = -30;
                             }
+                            if(player.direction == "s"){
+                                yOff = 30;
+                            }
+                            if(player.direction == "a"){
+                                xOff = -30;
+                            }
+                            if(player.direction == "d"){
+                                xOff = 30;
+                            }
+                            let b = new Hitbox(player.x + xOff,player.y + yOff,player.width,player.height,player.location);
+                            for(let i = 0; i < locations[player.location][3].length; i++){
+                                if((locations[player.location][3][i].interact != null)&&(isColide(b,locations[player.location][3][i]))){
+                                    locations[player.location][3][i].interact(socket.id); 
+                                }
+                            }  
                         }
                     }
                 }
@@ -77,17 +85,23 @@ io.on('connection', (socket) => {
         for(let ii = 0; ii < locations.length; ii++){
             for(let i = 0; i < locations[ii][4].length; i++){
                 if(locations[ii][4][i].id == socket.id){
-                    if(key == "w"){
+                    if((key == "w")||(key == "W")){
                         locations[ii][4][i].keys.w = false;
                     } 
-                    if(key == "s"){
+                    if((key == "s")||(key == "S")){
                         locations[ii][4][i].keys.s = false;
                     }
-                    if(key == "a"){
+                    if((key == "a")||(key == "A")){
                         locations[ii][4][i].keys.a = false;
                     } 
-                    if(key == "d"){
+                    if((key == "d")||(key == "D")){
                         locations[ii][4][i].keys.d = false;
+                    }
+                    if((key == "p")||(key == "P")){
+                        locations[ii][4][i].keys.p = false;
+                    }
+                    if(key == "Shift"){
+                        locations[ii][4][i].keys.shift = false;
                     }
                 }
             }
@@ -190,39 +204,80 @@ class Player extends Drawing{
         this.startX = x;
         this.startY = y;
         this.id = id;
-        this.moveSpeed = 5;
+        this.moveSpeed = 3;
         this.type = "character";
         this.keys = {
             w:false,
             a:false,
             s:false,
-            d:false
+            d:false,
+            p:false,
+            shift:false
         }
         this.location = 0;
         this.moveLocation = 0;
         this.direction = "s";
         this.messages = [];
+        this.capsules = 0;
+        this.projectileCapsules = [];
+        this.aiming = true;
+        this.aimDirection = 0;
+
         locations[this.location][4].push(this);
     }
 
     move(){
+
+        for(let i = 0; i < this.projectileCapsules.length; i++){
+            this.projectileCapsules[i].move();
+            if(this.projectileCapsules[i].deleted){
+                this.projectileCapsules.splice(i,1);
+                i--;
+            }
+        }
+
         let moveX = 0;
         let moveY = 0;
+        let speedMult = 1
+
+        if((this.keys.shift) && (this.capsules > 0)){
+            this.aiming = true;
+        } else {
+            this.aiming = false;
+        }
+        if(this.keys.p){
+            speedMult = 1.5;
+        }
         if(this.keys.w){
-            moveY -= this.moveSpeed;
-            this.direction = "w"
+            if(!this.keys.shift){
+                moveY -= this.moveSpeed * speedMult;
+                this.direction = "w"
+            }
         }
         if(this.keys.s){
-            moveY += this.moveSpeed;
-            this.direction = "s"
+            if(!this.keys.shift){
+                moveY += this.moveSpeed * speedMult;
+                this.direction = "s"
+            }
         }
         if(this.keys.a){
-            moveX -= this.moveSpeed;
-            this.direction = "a"
+            if(this.keys.shift){
+                this.aimDirection -= 0.1
+                if(this.aimDirection < 0){
+                    this.aimDirection += 2 * Math.PI
+                }
+            } else {
+                moveX -= this.moveSpeed * speedMult;
+                this.direction = "a"
+            }
         }
         if(this.keys.d){
-            moveX += this.moveSpeed;
-            this.direction = "d"
+            if(this.keys.shift){
+                this.aimDirection += 0.1
+            } else {
+                moveX += this.moveSpeed * speedMult;
+                this.direction = "d"
+            }
         }
 
         this.x += moveX;
@@ -339,8 +394,7 @@ class Teleporter extends Tile{
         super(x,y,-1,location);
         this.location2 = location2;
         this.type = "teleporter";   
-    }
-    
+    }   
 }
 class Hitbox{
     constructor(x,y,w,h,location){
@@ -349,6 +403,29 @@ class Hitbox{
         this.width = w;
         this.height = h;
         this.location = location;
+    }
+}
+class ProjectileCapsule{
+    constructor(x,y,direction,location){
+        this.x = x;
+        this.y = y;
+        this.width = 10;
+        this.height = 10;
+        this.direction = direction;
+        this.speed = 7;
+        this.location = location;
+        this.deleted = false
+    }
+
+    move(){
+        this.x += Math.cos(this.direction) * this.speed;
+        this.y += Math.sin(this.direction) * this.speed;
+        
+        for(let i = 0; i < locations[this.location][1].length; i++){
+            if(isColide(this,locations[this.location][1][i])){
+                this.deleted = true;
+            }
+        }
     }
 }
 
@@ -454,6 +531,14 @@ function generateArea1(){
             for(let ii = 0; ii < locations[i][4].length; ii++){
                 if(locations[i][4][ii].id == id){
                     locations[i][4][ii].messages.push("Hello!");
+                    locations[i][4][ii].messages.push("Welcome to the world of bugietown");
+                    locations[i][4][ii].messages.push("Here, dangerous and wonderful creatures roam the land...");
+                    locations[i][4][ii].messages.push("and I'm going to be the best rancher in the whole world!");
+                    locations[i][4][ii].messages.push("Now take these:");
+                    locations[i][4][ii].messages.push("(player recieved creature capsules)");
+                    locations[i][4][ii].capsules += 10;
+                    locations[i][4][ii].messages.push("You're gonna help me capture as many creatures as possible, got it?");
+                    
                 }
             }
         }
@@ -484,6 +569,7 @@ function isColide(a,b){
     }
     return(false);
 }
+
 generateArea0();
 generateArea1();
 gameTick();

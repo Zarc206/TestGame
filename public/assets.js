@@ -1,3 +1,9 @@
+var pointerImg = new Image();
+pointerImg.src = "assets/pointer.png"
+
+var capsuleImg = new Image();
+capsuleImg.src = "assets/capsul.png"
+
 var grassTile = new Image();
 grassTile.src = "assets/tiles/grassTile.png"
 
